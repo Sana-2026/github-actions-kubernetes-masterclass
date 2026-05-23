@@ -1,0 +1,35 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: skillpulse
+  region: ap-south-1        # Mumbai — closest to Bhopal, lowest latency
+  version: "1.30"
+
+# Managed node group — eksctl handles the EC2 instances
+managedNodeGroups:
+  - name: skillpulse-nodes
+    instanceType: t3.medium  # 2 vCPU, 4GB RAM — enough for all 3 tiers
+    minSize: 1
+    desiredCapacity: 2
+    maxSize: 3
+    volumeSize: 20           # GB per node
+    ssh:
+      allow: false           # no direct SSH — use kubectl exec instead
+    labels:
+      role: worker
+    tags:
+      project: skillpulse
+      env: production
+
+# IAM — OIDC provider lets pods assume IAM roles (needed for future secrets manager etc.)
+iam:
+  withOIDC: true
+
+# CloudWatch logging for control plane
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - api
+      - audit
+      - authenticator

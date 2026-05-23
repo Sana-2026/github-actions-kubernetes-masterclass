@@ -1,18 +1,31 @@
-# Stage 1: Build
+# ---------- Stage 1: Builder ----------
 FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
-COPY . .
-RUN go mod tidy && CGO_ENABLED=0 GOOS=linux go build -o skillpulse .
+# Install git
+RUN apk add --no-cache git
 
-# Stage 2: Run
+# Copy dependency files first
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy remaining source code
+COPY . .
+
+# Build static binary
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=mod -o skillpulse .
+
+# ---------- Stage 2: Runtime ----------
 FROM alpine:3.23
 
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
+# Copy binary from builder
 COPY --from=builder /app/skillpulse .
 
 EXPOSE 8080
